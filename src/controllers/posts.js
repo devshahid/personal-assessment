@@ -1,19 +1,22 @@
 const PostModel = require("../models/post.schema");
-
+const { uploadImageToS3 } = require("../middlewares/uploadImage");
+const mongoose = require("mongoose");
+const TagModal = require("../models/tags.schema");
 exports.createPost = async (req, res) => {
-  const { title, desc, image, tags } = req.body;
-  console.log(req.body);
-  if (!title || !desc || !image || !tags)
+  const { title, desc, tags } = req.body;
+  if (!title || !desc || !tags || !req.file)
     return res.status(401).json({ msg: "Please fill all fields" });
   try {
+    const imgUrl = await uploadImageToS3(req.file);
+    const tagIds =
+      JSON.parse(tags).length > 0 && JSON.parse(tags).map((tag) => tag._id);
     const newPost = new PostModel({
       title,
       desc,
-      image,
-      tags,
+      image: imgUrl,
+      tags: tagIds,
     });
     const createdPost = await newPost.save();
-    console.log("created post", createdPost);
     res.status(201).json({
       message: "Post created successfully",
       postData: createdPost,
@@ -54,5 +57,16 @@ exports.getAllPosts = async (req, res) => {
       message: "There is some problem with happened",
       error,
     });
+  }
+};
+exports.deleteAllPosts = async (req, res) => {
+  try {
+    const result = await PostModel.deleteMany({});
+    res
+      .status(200)
+      .json({ message: `${result.deletedCount} documents deleted` });
+  } catch (error) {
+    console.error("Error deleting documents:", error);
+    res.status(500).json({ error: "An error occurred" });
   }
 };
