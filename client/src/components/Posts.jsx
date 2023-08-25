@@ -73,14 +73,22 @@ const Posts = () => {
       }
     }
   };
-  const handleInputChange = (event) => {
+  const handleInputChange = async (event) => {
     const newQuery = event.target.value;
     const filteredResults = postData.filter(
       (item) =>
         item.title.toLowerCase().includes(newQuery.toLowerCase()) ||
         item.desc.toLowerCase().includes(newQuery.toLowerCase())
     );
-    setPostData(filteredResults);
+    if (newQuery === "") {
+      const response = await axios.get(
+        `${ENV_VARS.SERVER_URL}/api/posts/getAllPosts?page=${page}&limit=3`
+      );
+      const { posts } = response.data;
+      setPostData(posts);
+    } else {
+      setPostData(filteredResults);
+    }
     setQuery(newQuery);
   };
   const handleCountBtn = async (e) => {
