@@ -5,9 +5,12 @@
   gap: 10px;
   padding: 10px;
 }
-.buttonContainer button {
+.buttonContainer button,
+.optionSelector,
+.searchBarContainer input {
   padding: 10px;
 }
+
 .post-images {
   display: flex;
   flex-wrap: wrap;
@@ -29,4 +32,21 @@
   justify-content: center;
   align-items: center;
   overflow: hidden;
+}
+.defaultText {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.pagination-number {
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  justify-content: center;
+  align-items: center;
 }

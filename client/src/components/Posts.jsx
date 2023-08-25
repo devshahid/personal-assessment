@@ -3,6 +3,8 @@ import NewPostModal from "./AddPosts/AddPosts";
 import AddTags from "./AddTags/AddTags";
 import axios from "axios";
 import "./style.css";
+import ENV_VARS from "../utils/config";
+import DisplayPosts from "./DisplayPosts";
 const Posts = () => {
   const [popup, setPopup] = useState({
     tags: false,
@@ -10,8 +12,9 @@ const Posts = () => {
   });
   const [allTags, setAllTags] = useState([]);
   const [postData, setPostData] = useState([]);
-  const [tempPost, setTempPost] = useState(postData);
   const [query, setQuery] = useState("");
+  let [page, setPage] = useState(1);
+  const [totalPage, setTotalPage] = useState(1);
   const handleClick = (e) => {
     setPopup({
       ...popup,
@@ -22,7 +25,7 @@ const Posts = () => {
     const getAllTags = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:8000/api/tags/getAllTags"
+          `${ENV_VARS.SERVER_URL}/api/tags/getAllTags`
         );
         if (response.status === 200 && response.data) {
           setAllTags(response.data.tags);
@@ -33,26 +36,41 @@ const Posts = () => {
     };
     const getAllImages = async () => {
       const response = await axios.get(
-        "http://localhost:8000/api/posts/getAllPosts"
+        `${ENV_VARS.SERVER_URL}/api/posts/getAllPosts?page=${page}&limit=3`
       );
-      const { posts } = response.data;
+      const { posts, currentPage, totalPages } = response.data;
       if (posts.length > 0) {
         setPostData(posts);
-        setTempPost(posts);
+      }
+      if (currentPage && totalPages) {
+        setPage(currentPage);
+        setTotalPage(totalPages);
       }
     };
     getAllTags();
     getAllImages();
   }, [popup]);
-  const handleSort = (e) => {
+  const handleSort = async (e) => {
     const selectedTag = e.target.value;
-    if (postData.length > 0) {
-      const newPosts = postData.filter((post) => {
-        if (post.tags.includes(selectedTag)) {
-          return post;
+    if (selectedTag) {
+      try {
+        let response;
+        if (selectedTag === "novalue") {
+          response = await axios.get(
+            `${ENV_VARS.SERVER_URL}/api/posts/getAllPosts?page=${page}&limit=3`
+          );
+        } else {
+          response = await axios.get(
+            `${ENV_VARS.SERVER_URL}/api/posts/getpostbyid/${selectedTag}`
+          );
         }
-      });
-      setTempPost(newPosts);
+        const { posts } = response.data;
+        if (posts) {
+          setPostData(posts);
+        }
+      } catch (error) {
+        setPostData([]);
+      }
     }
   };
   const handleInputChange = (event) => {
@@ -62,14 +80,42 @@ const Posts = () => {
         item.title.toLowerCase().includes(newQuery.toLowerCase()) ||
         item.desc.toLowerCase().includes(newQuery.toLowerCase())
     );
-    setTempPost(filteredResults);
+    setPostData(filteredResults);
     setQuery(newQuery);
+  };
+  const handleCountBtn = async (e) => {
+    const btn = e.target.name;
+    if (btn === "prev") {
+      if (page !== 1) {
+        setPage(--page);
+      }
+    } else if (btn === "next") {
+      if (page !== totalPage) {
+        setPage(++page);
+      }
+    }
+    try {
+      const response = await axios.get(
+        `${ENV_VARS.SERVER_URL}/api/posts/getAllPosts?page=${page}&limit=3`
+      );
+
+      const { posts, currentPage, totalPages } = response.data;
+      if (currentPage && totalPages) {
+        setPage(currentPage);
+        setTotalPage(totalPages);
+      }
+      if (posts) {
+        setPostData(posts);
+      }
+    } catch (error) {
+      setPostData([]);
+    }
   };
   return (
     <>
       <div>
         <div className="buttonContainer">
-          <div>
+          <div className="searchBarContainer">
             <input
               type="text"
               placeholder="Search for title and Desc"
@@ -77,42 +123,33 @@ const Posts = () => {
               onChange={handleInputChange}
             />
           </div>
+          {postData && (
+            <select onChange={handleSort} className="optionSelector">
+              <option value="novalue">Select Tags</option>
+              {allTags.map((tag) => (
+                <option value={tag._id}>{tag.name}</option>
+              ))}
+            </select>
+          )}
           <button onClick={handleClick} name="tags">
             Add Tags
           </button>
           <button onClick={handleClick} name="post">
             Add Post
           </button>
-          {tempPost && (
-            <select onChange={handleSort}>
-              <option value="novalue">Select Tags</option>
-              {allTags.map((tag) => (
-                <option value={tag.name}>{tag.name}</option>
-              ))}
-            </select>
-          )}
         </div>
-
-        <div className="post-images">
-          {tempPost.length > 0 &&
-            tempPost.map(({ title, desc, tags, image }, index) => (
-              <div key={index} className="singleImage">
-                <h3>{title}</h3>
-                <img
-                  src={image}
-                  alt={image}
-                  style={{ width: "200px", height: "200px" }}
-                />
-                <p>{desc}</p>
-                <p className="tagClass">
-                  Tags :
-                  {tags.map((tag) => (
-                    <span className="post-tags">{`${tag}`}</span>
-                  ))}
-                </p>
-              </div>
-            ))}
-        </div>
+        {postData.length > 0 ? (
+          <>
+            <DisplayPosts
+              postData={postData}
+              handleCountBtn={handleCountBtn}
+              page={page}
+              totalPage={totalPage}
+            />
+          </>
+        ) : (
+          <div className="defaultText">No Post Available</div>
+        )}
       </div>
       {popup.tags && <AddTags popup={popup} setPopup={setPopup} />}
       {popup.post && (

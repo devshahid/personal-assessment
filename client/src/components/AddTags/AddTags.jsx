@@ -39,6 +39,9 @@ const AddTags = ({ popup, setPopup }) => {
       }
     }
   };
+  const handleClose = () => {
+    setPopup({ ...popup, ["tags"]: false });
+  };
   return (
     <div className="AddTagsContainer">
       <TagModal
@@ -46,7 +49,11 @@ const AddTags = ({ popup, setPopup }) => {
         onClose={() => setPopup({ ...popup, ["tags"]: false })}
       >
         <div className="modal-content">
-          <p>Press Enter if you're done with your tag</p>
+          <div className="formHeaders">
+            <p>Press Enter if you're done with your tag</p>
+            <button onClick={handleClose}>x</button>
+          </div>
+
           <input
             type="text"
             value={inputValue}
